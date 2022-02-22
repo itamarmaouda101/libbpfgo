@@ -9,10 +9,10 @@ import (
 )
 
 /*
- * this package is to support a kernel-malware detection and especially rootkits.
- * in addition it gives tracee the ability to hold all the known kernel symbols
+ * This package gives the ability to hold all the known kernel symbols.
+ * the package parse the /proc/kallsyms file that hold the known kernel symbol
  *
- * the KernelSymbolTable type holds map of all the kernel symbols with a ke y which is the kernel object owner and the name with undercase between them
+ * The KernelSymbolTable type holds map of all the kernel symbols with a key which is the kernel object owner and the name with under-case between them
  * which means that symbolMap looks like [objectOwner_objectname{SymbolData}, objectOwner_objectname{SymbolData}, etc...]
  * the key naming is because sometimes kernel symbols can have the same name or the same address which prevents to key the map with only one of them
  *
@@ -49,33 +49,33 @@ func (k *KernelSymbolTable) IsInTextSegment(addr uint64) (bool, error) {
 }
 
 //GetSymbolByAddr returns a symbol by a given address
-func (k *KernelSymbolTable) GetSymbolByAddr(addr uint64) (KernelSymbol, error) {
+func (k *KernelSymbolTable) GetSymbolByAddr(addr uint64) (*KernelSymbol, error) {
 	for _, Symbol := range k.symbolMap {
 		if Symbol.Address == addr {
-			return Symbol, nil
+			return &Symbol, nil
 		}
 	}
-	return KernelSymbol{}, fmt.Errorf("symbol not found")
+	return nil, fmt.Errorf("symbol not found")
 }
 
 //GetSymbolByName returns a symbol by a given name and owner
-func (k *KernelSymbolTable) GetSymbolByName(owner string, name string) (KernelSymbol, error) {
+func (k *KernelSymbolTable) GetSymbolByName(owner string, name string) (*KernelSymbol, error) {
 	key := fmt.Sprintf("%s_%s", owner, name)
 	symbol, exist := k.symbolMap[key]
 	if exist {
-		return symbol, nil
+		return &symbol, nil
 	}
-	return KernelSymbol{}, fmt.Errorf("symbol not found")
+	return nil, fmt.Errorf("symbol not found")
 }
 
 // NewKernelSymbolsMap Initiate the kernel symbol map
 // Note: the key of the map is the symbol owner and the symbol name (with undercase between them)
-func NewKernelSymbolsMap() (KernelSymbolTable, error) {
+func NewKernelSymbolsMap() (*KernelSymbolTable, error) {
 	var KernelSymbols = KernelSymbolTable{}
 	KernelSymbols.symbolMap = make(map[string]KernelSymbol)
 	file, err := os.Open("/proc/kallsyms")
 	if err != nil {
-		return KernelSymbols, fmt.Errorf("Could not open /proc/kallsyms")
+		return nil, fmt.Errorf("Could not open /proc/kallsyms")
 	}
 	defer file.Close()
 	scanner := bufio.NewScanner(file)
@@ -98,5 +98,5 @@ func NewKernelSymbolsMap() (KernelSymbolTable, error) {
 		KernelSymbols.symbolMap[symbolKey] = KernelSymbol{line[2], line[1], symbolAddr, symbolOwner}
 	}
 	KernelSymbols.initialized = true
-	return KernelSymbols, nil
+	return &KernelSymbols, nil
 }
